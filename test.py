@@ -39,6 +39,13 @@ def style_transfer(vgg, decoder, content, style, alpha=1.0,
     feat = feat * alpha + content_f * (1 - alpha)
     return decoder(feat)
 
+def get_folder_name(path:str):
+    last_slash_index = path.rfind("/")
+    if last_slash_index != -1:
+        return path[last_slash_index+1:]
+    else:
+        print("Error: Slash not found in the path.")
+
 
 parser = argparse.ArgumentParser()
 # Basic options
@@ -64,7 +71,7 @@ parser.add_argument('--style_size', type=int, default=512,
                     keeping the original size if set to 0')
 parser.add_argument('--crop', action='store_true',
                     help='do center crop to create squared image')
-parser.add_argument('--save_ext', default='.jpg',
+parser.add_argument('--save_ext', default='.png',
                     help='The extension name of the output image')
 parser.add_argument('--output', type=str, default='output',
                     help='Directory to save the output image(s)')
@@ -85,8 +92,7 @@ do_interpolation = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-output_dir = Path(args.output)
-output_dir.mkdir(exist_ok=True, parents=True)
+# output_dir = Path(args.output)
 
 # Either --content or --contentDir should be given.
 assert (args.content or args.content_dir)
@@ -112,6 +118,10 @@ else:
     style_dir = Path(args.style_dir)
     style_paths = [f for f in style_dir.glob('*')]
 
+content_name = get_folder_name(args.content_dir)
+style_name = get_folder_name(args.style_dir)
+output_dir = Path(f'{content_name}-{style_name}')
+output_dir.mkdir(exist_ok=True, parents=True)
 decoder = net.decoder
 vgg = net.vgg
 
@@ -156,6 +166,6 @@ for content_path in content_paths:
                                         args.alpha)
             output = output.cpu()
 
-            output_name = output_dir / '{:s}_stylized_{:s}{:s}'.format(
+            output_name = output_dir / '{:s}-{:s}{:s}'.format(
                 content_path.stem, style_path.stem, args.save_ext)
             save_image(output, str(output_name))
